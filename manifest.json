@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "ChatGPT Prompt Sender",
+  "version": "1.0.0",
+  "description": "Insert and send predefined prompts to ChatGPT.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "send-prompt": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R"
+      },
+      "description": "Send the saved prompt to ChatGPT"
+    }
+  }
+}
