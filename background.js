@@ -88,13 +88,28 @@ async function runPrompt(message, shouldSend = false) {
 }
 
 // Runs inside the ChatGPT webpage
-function insertMessage(message, shouldSend) {
+async function insertMessage(message, shouldSend) {
   try {
-    const editor = document.querySelector(
+    // Find supported ChatGPT editors
+    const editors = document.querySelectorAll(
       '#mobile-composer-prompt, ' +
       '#prompt-textarea, ' +
       '[contenteditable="true"][aria-label="Ask ChatGPT"]'
     );
+
+    // Only consider visible editors
+    const visibleEditors = [...editors].filter((element) => {
+      const style = window.getComputedStyle(element);
+
+      return (
+        element.getClientRects().length > 0 &&
+        style.visibility !== "hidden" &&
+        style.display !== "none"
+      );
+    });
+
+    // Prefer the last visible composer
+    const editor = visibleEditors.at(-1);
 
     if (!editor) {
       throw new Error("ChatGPT message box not found.");
@@ -133,8 +148,19 @@ function insertMessage(message, shouldSend) {
       if (!inserted) {
         throw new Error("Could not insert text into the editor.");
       }
+
     } else {
       throw new Error("Unsupported message editor.");
+    }
+
+    // Verify the text was inserted
+    const insertedText =
+      editor instanceof HTMLTextAreaElement
+        ? editor.value
+        : editor.innerText;
+
+    if (insertedText.trim() !== message.trim()) {
+      throw new Error("Message insertion could not be verified.");
     }
 
     if (!shouldSend) {
@@ -144,31 +170,73 @@ function insertMessage(message, shouldSend) {
       };
     }
 
-    // Find ChatGPT's Send button
+    // Find the composer containing this editor
     const form = editor.closest("form");
 
-    const sendButton = (
-      form?.querySelector(
-        'button[data-composer-submit], ' +
-        'button[data-testid="send-button"]'
-      ) ??
-      document.querySelector(
+    if (!form) {
+      throw new Error("ChatGPT composer form not found.");
+    }
+
+    // Wait for Send button to appear and become enabled
+    const sendButton = await new Promise((resolve, reject) => {
+      const selector =
+        'button[aria-label="Send"], ' +
         'button[data-testid="send-button"], ' +
-        'button[data-composer-submit]'
-      )
-    );
+        'button[data-composer-submit]';
 
-    if (!sendButton) {
-      throw new Error("Message inserted, but Send button not found.");
-    }
+      let observer;
+      let timeoutId;
 
-    if (
-      sendButton.disabled ||
-      sendButton.getAttribute("aria-disabled") === "true"
-    ) {
-      throw new Error("Message inserted, but Send button is disabled.");
-    }
+      function cleanup() {
+        observer?.disconnect();
+        clearTimeout(timeoutId);
+      }
 
+      function checkButton() {
+        const buttons = form.querySelectorAll(selector);
+
+        for (const button of buttons) {
+          const style = window.getComputedStyle(button);
+
+          if (
+            button.getClientRects().length > 0 &&
+            style.visibility !== "hidden" &&
+            style.display !== "none" &&
+            !button.disabled &&
+            button.getAttribute("aria-disabled") !== "true"
+          ) {
+            cleanup();
+            resolve(button);
+            return;
+          }
+        }
+      }
+
+      observer = new MutationObserver(checkButton);
+
+      observer.observe(form, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: [
+          "disabled",
+          "aria-disabled",
+          "hidden",
+          "style",
+          "class",
+          "aria-label"
+        ]
+      });
+
+      timeoutId = setTimeout(() => {
+        cleanup();
+        reject(new Error("Send button not available."));
+      }, 3000);
+
+      checkButton();
+    });
+
+    // Click the Send button
     sendButton.click();
 
     return {
