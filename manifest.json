@@ -1,12 +1,15 @@
+
 {
   "manifest_version": 3,
   "name": "ChatGPT Prompt Sender",
-  "version": "1.3.0",
-  "description": "Insert and send predefined prompts to ChatGPT.",
+  "version": "1.4.0",
+  "description": "Insert and send predefined prompts or clipboard text to ChatGPT.",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "clipboardRead",
+    "offscreen"
   ],
   "background": {
     "service_worker": "background.js"
@@ -20,7 +23,7 @@
       "suggested_key": {
         "default": "Ctrl+Shift+R"
       },
-      "description": "Send the current popup message"
+      "description": "Send clipboard text to ChatGPT"
     },
     "send-prompt-1": {
       "suggested_key": {

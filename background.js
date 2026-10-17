@@ -15,18 +15,59 @@ async function setBadge(tabId, text, color) {
   });
 }
 
+// Ensure only one offscreen document creation runs at a time
+let creatingOffscreenDocument = null;
+
+// Read the current system clipboard text
+async function readClipboard() {
+  const offscreenUrl = chrome.runtime.getURL(
+    "offscreen.html"
+  );
+
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: ["OFFSCREEN_DOCUMENT"],
+    documentUrls: [offscreenUrl]
+  });
+
+  if (contexts.length === 0) {
+    if (!creatingOffscreenDocument) {
+      creatingOffscreenDocument =
+        chrome.offscreen.createDocument({
+          url: "offscreen.html",
+          reasons: ["CLIPBOARD"],
+          justification:
+            "Read clipboard text when the user activates the clipboard shortcut."
+        });
+    }
+
+    try {
+      await creatingOffscreenDocument;
+    } finally {
+      creatingOffscreenDocument = null;
+    }
+  }
+
+  const response = await chrome.runtime.sendMessage({
+    target: "offscreen",
+    type: "READ_CLIPBOARD"
+  });
+
+  if (!response?.success) {
+    throw new Error(
+      response?.error ?? "Could not read clipboard."
+    );
+  }
+
+  return response.text;
+}
+
 // Listen for keyboard shortcuts
-chrome.commands.onCommand.addListener(async (command) => {
+chrome.commands.onCommand.addListener(async (command, tab) => {
   try {
     let message;
 
     if (command === "send-prompt") {
-      // Original shortcut: use the popup textbox
-      const data = await chrome.storage.local.get(
-        "savedMessage"
-      );
-
-      message = data.savedMessage ?? DEFAULT_MESSAGE;
+      message = await readClipboard();
 
     } else if (
       command === "send-prompt-1" ||
@@ -47,7 +88,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       return;
     }
 
-    const result = await runPrompt(message, true);
+    const result = await runPrompt(message, true, tab?.id);
     console.log(`${command}: ${result}`);
 
   } catch (error) {
@@ -62,16 +103,23 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 // Find the active tab and execute the prompt
-async function runPrompt(message, shouldSend = false) {
-  let tabId;
+async function runPrompt(message, shouldSend = false, targetTabId = null) {
+  let tabId = targetTabId;
 
   try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true
-    });
+    let tab;
 
-    tabId = tab?.id;
+    if (tabId != null) {
+      tab = await chrome.tabs.get(tabId);
+    } else {
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true
+      });
+
+      tab = tabs[0];
+      tabId = tab?.id;
+    }
 
     if (tabId == null) {
       throw new Error("Active browser tab not found.");
@@ -292,7 +340,11 @@ chrome.runtime.onMessage.addListener(
     runPrompt(request.message, request.shouldSend)
       .then(result => sendResponse({ result }))
       .catch(async (error) => {
-        await setBadge(null, "ERR", "#C62828");
+        try {
+          await setBadge(null, "ERR", "#C62828");
+        } catch (badgeError) {
+          console.error("Badge update failed:", badgeError);
+        }
 
         sendResponse({
           result: `Error: ${error.message}`
