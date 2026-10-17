@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatGPT Prompt Sender",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Insert and send predefined prompts to ChatGPT.",
   "permissions": [
     "activeTab",
@@ -14,12 +14,31 @@
   "action": {
     "default_popup": "popup.html"
   },
+  "options_page": "options.html",
   "commands": {
     "send-prompt": {
       "suggested_key": {
         "default": "Ctrl+Shift+R"
       },
-      "description": "Send the saved prompt to ChatGPT"
+      "description": "Send the current popup message"
+    },
+    "send-prompt-1": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+1"
+      },
+      "description": "Send predefined message 1"
+    },
+    "send-prompt-2": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+2"
+      },
+      "description": "Send predefined message 2"
+    },
+    "send-prompt-3": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+3"
+      },
+      "description": "Send predefined message 3"
     }
   }
 }

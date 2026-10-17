@@ -1,13 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>ChatGPT Prompt Sender</title>
+
   <style>
     body {
-      width: 300px;
+      width: 320px;
       padding: 15px;
       font-family: Arial, sans-serif;
+      margin: 0;
+    }
+
+    h3 {
+      margin-top: 0;
     }
 
     textarea {
@@ -15,6 +21,9 @@
       box-sizing: border-box;
       height: 100px;
       margin-bottom: 10px;
+      padding: 8px;
+      resize: vertical;
+      font-family: inherit;
     }
 
     button {
@@ -22,20 +31,106 @@
       padding: 10px;
       cursor: pointer;
     }
+
+    #status {
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 16px 0;
+    }
+
+    .prompt-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
+    .prompt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+
+    .shortcut {
+      font-size: 11px;
+      color: #777;
+    }
+
+    .prompt-preview {
+      font-size: 12px;
+      color: #555;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
+
+    #configureButton {
+      margin-top: 8px;
+    }
   </style>
 </head>
+
 <body>
   <h3>ChatGPT Prompt Sender</h3>
 
-  <textarea id="message">
-Explain what machine learning is.
-  </textarea>
+  <textarea
+    id="message"
+    placeholder="Enter your message..."
+  >Explain what machine learning is.</textarea>
 
   <button id="insertButton">
     Insert Message
   </button>
 
   <p id="status"></p>
+
+  <hr>
+
+  <h4>Predefined Messages</h4>
+
+  <div class="prompt-item">
+    <div class="prompt-header">
+      <strong>Message 1</strong>
+      <span class="shortcut">Ctrl + Shift + 1</span>
+    </div>
+    <div class="prompt-preview" id="preview1">
+      Not configured
+    </div>
+  </div>
+
+  <div class="prompt-item">
+    <div class="prompt-header">
+      <strong>Message 2</strong>
+      <span class="shortcut">Ctrl + Shift + 2</span>
+    </div>
+    <div class="prompt-preview" id="preview2">
+      Not configured
+    </div>
+  </div>
+
+  <div class="prompt-item">
+    <div class="prompt-header">
+      <strong>Message 3</strong>
+      <span class="shortcut">Ctrl + Shift + 3</span>
+    </div>
+    <div class="prompt-preview" id="preview3">
+      Not configured
+    </div>
+  </div>
+
+  <button id="configureButton">
+    Configure Predefined Messages
+  </button>
 
   <script src="popup.js"></script>
 </body>

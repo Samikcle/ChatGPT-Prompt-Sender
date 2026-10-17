@@ -17,20 +17,47 @@ async function setBadge(tabId, text, color) {
 
 // Listen for keyboard shortcuts
 chrome.commands.onCommand.addListener(async (command) => {
-  if (command !== "send-prompt") return;
-
   try {
-    const { savedMessage } = await chrome.storage.local.get(
-      "savedMessage"
-    );
+    let message;
 
-    const message = savedMessage ?? DEFAULT_MESSAGE;
+    if (command === "send-prompt") {
+      // Original shortcut: use the popup textbox
+      const data = await chrome.storage.local.get(
+        "savedMessage"
+      );
+
+      message = data.savedMessage ?? DEFAULT_MESSAGE;
+
+    } else if (
+      command === "send-prompt-1" ||
+      command === "send-prompt-2" ||
+      command === "send-prompt-3"
+    ) {
+      // Convert command name into array index
+      const index = Number(command.at(-1)) - 1;
+
+      const { predefinedMessages = [] } =
+        await chrome.storage.local.get(
+          "predefinedMessages"
+        );
+
+      message = predefinedMessages[index] ?? "";
+
+    } else {
+      return;
+    }
 
     const result = await runPrompt(message, true);
-    console.log(result);
+    console.log(`${command}: ${result}`);
+
   } catch (error) {
     console.error("Shortcut failed:", error);
-    await setBadge(null, "ERR", "#C62828");
+
+    try {
+      await setBadge(null, "ERR", "#C62828");
+    } catch (badgeError) {
+      console.error("Badge update failed:", badgeError);
+    }
   }
 });
 
@@ -51,7 +78,7 @@ async function runPrompt(message, shouldSend = false) {
     }
 
     if (typeof message !== "string" || !message.trim()) {
-      throw new Error("Message is empty.");
+      throw new Error("Message is empty or not configured.");
     }
 
     if (!tab.url?.startsWith("https://chatgpt.com/")) {
@@ -79,9 +106,13 @@ async function runPrompt(message, shouldSend = false) {
     return result.message;
 
   } catch (error) {
-    await setBadge(tabId, "ERR", "#C62828");
-
     console.error("Prompt automation failed:", error);
+
+    try {
+      await setBadge(tabId, "ERR", "#C62828");
+    } catch (badgeError) {
+      console.error("Badge update failed:", badgeError);
+    }
 
     return `Error: ${error.message}`;
   }
@@ -163,6 +194,7 @@ async function insertMessage(message, shouldSend) {
       throw new Error("Message insertion could not be verified.");
     }
 
+    // Popup button: insert only
     if (!shouldSend) {
       return {
         success: true,
